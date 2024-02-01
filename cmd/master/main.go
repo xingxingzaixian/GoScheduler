@@ -14,8 +14,6 @@ import (
 )
 
 // web服务器默认端口
-const DefaultPort = 5320
-
 var AppVersion = "1.0"
 
 func main() {
@@ -44,7 +42,7 @@ func getCommands() []cli.Command {
 			},
 			cli.IntFlag{
 				Name:  "port,p",
-				Value: DefaultPort,
+				Value: global.DefaultPort,
 				Usage: "bind port",
 			},
 		},
@@ -57,23 +55,14 @@ func runWeb(ctx *cli.Context) {
 	// 初始化应用
 	app.InitEnv()
 	// 初始化模块 DB、定时任务等
-	initModule()
+	initModule(ctx)
 	// 捕捉信号,配置热更新等
 	go catchSignal()
-
-	m := macaron.Classic()
-	// 注册路由
-	routers.Register(m)
-	// 注册中间件.
-	routers.RegisterMiddleware(m)
-	host := parseHost(ctx)
-	port := parsePort(ctx)
-	m.Run(host, port)
 }
 
-func initModule() {
+func initModule(ctx *cli.Context) {
 	// 初始化路由
-	routers.InitRouter()
+	routers.InitRouter(ctx)
 
 	if !global.Installed {
 		return
@@ -85,27 +74,6 @@ func initModule() {
 
 	// 初始化定时任务
 	service.ServiceTask.Initialize()
-}
-
-// 解析端口
-func parsePort(ctx *cli.Context) int {
-	port := DefaultPort
-	if ctx.IsSet("port") {
-		port = ctx.Int("port")
-	}
-	if port <= 0 || port >= 65535 {
-		port = DefaultPort
-	}
-
-	return port
-}
-
-func parseHost(ctx *cli.Context) string {
-	if ctx.IsSet("host") {
-		return ctx.String("host")
-	}
-
-	return "0.0.0.0"
 }
 
 // 捕捉信号

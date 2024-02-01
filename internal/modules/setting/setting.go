@@ -17,6 +17,7 @@ type DB struct {
 
 type Setting struct {
 	Name   string `mapstructure:"name"`
+	Queue  int    `mapstructure:"queue"`
 	DBInfo DB     `mapstructure:"db"`
 }
 

@@ -12,5 +12,6 @@ var (
 	// Installed 应用是否已安装
 	Installed bool // 应用是否安装过
 	// Setting 应用配置
-	Setting *setting2.Setting = &setting2.Setting{}
+	Setting     *setting2.Setting = &setting2.Setting{}
+	DefaultPort int               = 5320
 )
