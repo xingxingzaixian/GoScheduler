@@ -2,13 +2,13 @@ package service
 
 import (
 	"GoScheduler/internal/service/models"
-	"github.com/gogf/gf/v2/os/gcron"
+	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )
 
 var (
 	// 定时任务调度管理器
-	serviceCron *gcron.Cron
+	serviceCron *cron.Cron
 
 	// 同一任务是否有实例处于运行中
 	runInstance models.Instance
@@ -21,7 +21,7 @@ var (
 )
 
 func Initialize() {
-	serviceCron := gcron.New()
+	serviceCron = cron.New()
 	serviceCron.Start()
 	concurrencyQueue = models.NewConcurrencyQueue()
 	taskCount = models.NewTaskCount()

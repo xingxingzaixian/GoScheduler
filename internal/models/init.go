@@ -3,6 +3,7 @@ package models
 import (
 	"GoScheduler/internal/modules/global"
 	"fmt"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -35,35 +36,49 @@ func InitDB() {
 			SingularTable: true,
 		},
 	}
-	if global.Setting.DBInfo.Engine == "mysql" {
+	if viper.GetString("db.engine") == "mysql" {
 		dsn := fmt.Sprintf(
 			"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-			global.Setting.DBInfo.User,
-			global.Setting.DBInfo.Password,
-			global.Setting.DBInfo.Host,
-			global.Setting.DBInfo.Port,
-			global.Setting.DBInfo.Database,
+			viper.GetString("db.user"),
+			viper.GetString("db.password"),
+			viper.GetString("db.host"),
+			viper.GetInt("db.port"),
+			viper.GetString("db.name"),
 		)
 		db, err := gorm.Open(
 			mysql.Open(dsn),
 			&option)
 		if err != nil {
-			zap.S().Fatalf("MySQL数据库连接失败:%s:%d", global.Setting.DBInfo.Host, global.Setting.DBInfo.Port)
+			zap.S().Fatalf("MySQL数据库连接失败:%s:%d", viper.GetString("db.host"), viper.GetInt("db.port"))
 		}
 
 		global.DB.AutoMigrate(&Host{}, &User{})
 
 		global.DB = db
-	} else if global.Setting.DBInfo.Engine == "sqlite" {
+	} else if viper.GetString("db.engine") == "sqlite" {
 		db, err := gorm.Open(
-			mysql.Open(global.Setting.DBInfo.User),
+			mysql.Open(viper.GetString("db.user")),
 			&option)
 		if err != nil {
-			zap.S().Fatalf("SQlite数据库连接失败:%s:%d", global.Setting.DBInfo.User)
+			zap.S().Fatalf("SQlite数据库连接失败:%s:%d", viper.GetString("db.user"))
 		}
 
-		global.DB.AutoMigrate(&Host{}, &User{})
+		global.DB.AutoMigrate(&Host{}, &User{}, &TaskHostDetail{})
 
 		global.DB = db
 	}
+}
+
+func PageLimitOffset(db *gorm.DB, params CommonMap) *gorm.DB {
+	page, ok := params["page"]
+	if !ok || page.(int) <= 0 {
+		page = global.Page
+	}
+
+	pageSize, ok := params["pageSize"]
+	if !ok || pageSize.(int) <= 0 {
+		pageSize = global.PageSize
+	}
+
+	return db.Limit(pageSize.(int)).Offset((page.(int) - 1) * pageSize.(int))
 }

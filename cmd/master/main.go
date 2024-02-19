@@ -14,7 +14,6 @@ import (
 )
 
 // web服务器默认端口
-var AppVersion = "1.0"
 
 func main() {
 	cliApp := cli.NewApp()

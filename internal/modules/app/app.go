@@ -2,14 +2,12 @@ package app
 
 import (
 	"GoScheduler/internal/modules/global"
-	"GoScheduler/internal/modules/logger"
 	"GoScheduler/internal/modules/utils"
 	"go.uber.org/zap"
 	"path/filepath"
 )
 
 func InitEnv() {
-	logger.InitLogger()
 	var err error
 	global.AppDir, err = utils.GetWorkDir()
 	if err != nil {

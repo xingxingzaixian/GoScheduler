@@ -1,6 +1,8 @@
 package models
 
-import "GoScheduler/internal/modules/global"
+import (
+	"github.com/spf13/viper"
+)
 
 // 并发队列
 type ConcurrencyQueue struct {
@@ -9,7 +11,7 @@ type ConcurrencyQueue struct {
 
 func NewConcurrencyQueue() *ConcurrencyQueue {
 	return &ConcurrencyQueue{
-		make(chan struct{}, global.Setting.Queue),
+		make(chan struct{}, viper.GetInt("queue")),
 	}
 }
 func (cq *ConcurrencyQueue) Add() {

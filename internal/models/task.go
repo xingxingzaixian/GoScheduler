@@ -2,11 +2,13 @@ package models
 
 import (
 	"GoScheduler/internal/modules/global"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
 
 type TaskProtocol int8
+type Status int8
 
 const (
 	TaskHTTP TaskProtocol = iota + 1 // HTTP协议
@@ -34,6 +36,15 @@ const (
 	TaskHttpMethodPost TaskHTTPMethod = 2
 )
 
+const (
+	TaskDisabled Status = 0 // 禁用
+	TaskFailure  Status = 0 // 失败
+	TaskEnabled  Status = 1 // 启用
+	TaskRunning  Status = 1 // 运行中
+	TaskFinish   Status = 2 // 完成
+	TaskCancel   Status = 3 // 取消
+)
+
 type Task struct {
 	gorm.Model
 	Name             string               `gorm:"size:32;not null" json:"name"`
@@ -54,12 +65,12 @@ type Task struct {
 	NotifyKeyword    string               `gorm:"size:128;not null;default:''" json:"notify_keyword"`
 	Tag              string               `gorm:"size:32;not null;default:''" json:"tag"`
 	Remark           string               `gorm:"size:100;not null;default:''" json:"remark"`
-	Status           global.Status        `gorm:"type:tinyint;not null;index;default:0" json:"status"`
+	Status           Status               `gorm:"type:tinyint;not null;index;default:0" json:"status"`
 	Hosts            []TaskHostDetail     `json:"hosts" gorm:"-"`
 	NextRunTime      time.Time            `json:"next_run_time" gorm:"-"`
 }
 
-// 新增
+// Create 新增
 func (task *Task) Create() (insertId uint, err error) {
 	result := global.DB.Create(task)
 	if result.Error == nil {
@@ -104,9 +115,42 @@ func (task *Task) Delete(id int) (int64, error) {
 }
 
 func (task *Task) Disable(id uint) (int64, error) {
-	return task.Update(id, CommonMap{"status": global.Disabled})
+	return task.Update(id, CommonMap{"status": TaskDisabled})
 }
 
 func (task *Task) Enable(id uint) (int64, error) {
-	return task.Update(id, CommonMap{"status": global.Enabled})
+	return task.Update(id, CommonMap{"status": TaskEnabled})
+}
+
+func (task *Task) GetList(params CommonMap) (list []Task, err error) {
+	m := global.DB.Model(&task)
+
+	name, ok := params["Name"]
+	if ok {
+		m = m.Where("name like ?", fmt.Sprintf("%%%s%%", name))
+	}
+
+	protocol, ok := params["Protocol"]
+	if ok {
+		m = m.Where("protocol = ?", protocol)
+	}
+
+	status, ok := params["Status"]
+	if ok {
+		m = m.Where("status = ?", status)
+	}
+
+	tag, ok := params["Tag"]
+	if ok {
+		m = m.Where("tag = ?", tag)
+	}
+
+	err = PageLimitOffset(m, params).Find(&list).Error
+	return
+}
+
+func (task *Task) GetActiveList() (list []Task, err error) {
+	m := global.DB.Model(&task)
+	err = m.Where("status = ? AND level = ?", TaskEnabled, TaskLevelParent).Find(&list).Error
+	return
 }

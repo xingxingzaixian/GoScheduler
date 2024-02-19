@@ -1,6 +1,6 @@
-package GoScheduler
+package web
 
 import "embed"
 
-//go:embed web
+//go:embed dist
 var WebFS embed.FS
