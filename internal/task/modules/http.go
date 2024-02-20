@@ -2,6 +2,7 @@ package modules
 
 import (
 	"GoScheduler/internal/models"
+	"GoScheduler/internal/modules/httpclient"
 	"fmt"
 	"net/http"
 	"strings"

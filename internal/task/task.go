@@ -2,16 +2,10 @@ package task
 
 import (
 	"GoScheduler/internal/models"
-	rpcClient "GoScheduler/internal/modules/rpc/client"
+	rpcClient "GoScheduler/lib/rpc/client"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )
-
-type TaskResult struct {
-	Result     string
-	Err        error
-	RetryTimes int8
-}
 
 // 批量添加任务
 func BatchAddTask(tasks []models.Task) {
@@ -32,7 +26,7 @@ func AddTask(taskModel models.Task) {
 		zap.S().Errorf("添加任务失败#不允许添加子任务到调度器#任务Id-%d", taskModel.ID)
 		return
 	}
-	taskFunc := createJob(taskModel)
+	taskFunc := CreateJob(taskModel)
 	if taskFunc == nil {
 		zap.S().Error("创建任务处理Job失败,不支持的任务协议#", taskModel.Protocol)
 		return
@@ -52,5 +46,9 @@ func RemoveTask(id uint) {
 }
 
 func RunTask(taskModel models.Task) {
-	go createJob(taskModel)()
+	go CreateJob(taskModel)()
+}
+
+func WaitAndExit() {
+	serviceCron.Stop()
 }

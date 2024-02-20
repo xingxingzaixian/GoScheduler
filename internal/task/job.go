@@ -2,6 +2,7 @@ package task
 
 import (
 	"GoScheduler/internal/models"
+	"GoScheduler/internal/modules/global"
 	taskModule "GoScheduler/internal/task/modules"
 	"fmt"
 	"github.com/robfig/cron/v3"
@@ -19,17 +20,17 @@ func CreateJob(taskModel models.Task) cron.FuncJob {
 		defer taskCount.Done()
 
 		taskLogId, err := beforeExecJob(taskModel)
-		if taskLogId <= 0 {
+		if taskLogId <= 0 || err != nil {
 			return
 		}
 
 		if taskModel.Multi == 0 {
-			runInstance.add(taskModel.Id)
-			defer runInstance.done(taskModel.Id)
+			runInstance.Add(taskModel.ID)
+			defer runInstance.Done(taskModel.ID)
 		}
 
-		concurrencyQueue.Add()
-		defer concurrencyQueue.Done()
+		ccQueue.Add()
+		defer ccQueue.Done()
 
 		zap.S().Infof("开始执行任务#%s#命令-%s", taskModel.Name, taskModel.Command)
 		taskResult := execJob(handler, taskModel, taskLogId)
@@ -54,7 +55,7 @@ func CreateHandler(taskModel models.Task) taskModule.Handler {
 
 // 任务前置操作
 func beforeExecJob(taskModel models.Task) (taskLogId uint, err error) {
-	if taskModel.Multi == 0 && runInstance.has(taskModel.ID) {
+	if taskModel.Multi == 0 && runInstance.Has(taskModel.ID) {
 		taskLogId, err = createTaskLog(taskModel, models.TaskCancel)
 		return
 	}
@@ -69,7 +70,7 @@ func beforeExecJob(taskModel models.Task) (taskLogId uint, err error) {
 }
 
 // 任务执行后置操作
-func afterExecJob(taskModel models.Task, taskResult TaskResult, taskLogId uint) {
+func afterExecJob(taskModel models.Task, taskResult global.TaskResult, taskLogId uint) {
 	_, err := updateTaskLog(taskLogId, taskResult)
 	if err != nil {
 		zap.S().Error("任务结束#更新任务日志失败-", err)
@@ -77,12 +78,10 @@ func afterExecJob(taskModel models.Task, taskResult TaskResult, taskLogId uint) 
 
 	// 发送邮件
 	go SendNotification(taskModel, taskResult)
-	// 执行依赖任务
-	go execDependencyTask(taskModel, taskResult)
 }
 
 // 执行具体任务
-func execJob(handler taskModule.Handler, taskModel models.Task, taskUniqueId uint) TaskResult {
+func execJob(handler taskModule.Handler, taskModel models.Task, taskUniqueId uint) global.TaskResult {
 	defer func() {
 		if err := recover(); err != nil {
 			zap.S().Error("panic#service/task.go:execJob#", err)
@@ -99,7 +98,7 @@ func execJob(handler taskModule.Handler, taskModel models.Task, taskUniqueId uin
 	for i < execTimes {
 		output, err = handler.Run(taskModel, taskUniqueId)
 		if err == nil {
-			return TaskResult{Result: output, Err: err, RetryTimes: i}
+			return global.TaskResult{Result: output, Err: err, RetryTimes: i}
 		}
 		i++
 		if i < execTimes {
@@ -113,7 +112,7 @@ func execJob(handler taskModule.Handler, taskModel models.Task, taskUniqueId uin
 		}
 	}
 
-	return TaskResult{Result: output, Err: err, RetryTimes: taskModel.RetryTimes}
+	return global.TaskResult{Result: output, Err: err, RetryTimes: taskModel.RetryTimes}
 }
 
 // 创建任务日志
@@ -139,7 +138,7 @@ func createTaskLog(taskModel models.Task, status models.Status) (uint, error) {
 }
 
 // 更新任务日志
-func updateTaskLog(taskLogId uint, taskResult TaskResult) (int64, error) {
+func updateTaskLog(taskLogId uint, taskResult global.TaskResult) (int64, error) {
 	taskLogModel := new(models.TaskLog)
 	var status models.Status
 	result := taskResult.Result

@@ -1,8 +1,8 @@
 package client
 
 import (
-	"GoScheduler/internal/modules/rpc/grpcpool"
-	pb "GoScheduler/internal/modules/rpc/proto"
+	"GoScheduler/lib/rpc/grpcpool"
+	pb "GoScheduler/lib/rpc/proto"
 	"errors"
 	"fmt"
 	"go.uber.org/zap"

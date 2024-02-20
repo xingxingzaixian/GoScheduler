@@ -18,9 +18,11 @@ func InitRouter(host string, port int) {
 	// 注册通用中间件
 	router.Use(gin.Logger(), gin.Recovery())
 
-	if err := router.Run(fmt.Sprintf("%s:%d", host, port)); err != nil {
-		zap.S().Fatal(err)
-	}
+	go func() {
+		if err := router.Run(fmt.Sprintf("%s:%d", host, port)); err != nil {
+			zap.S().Fatal(err)
+		}
+	}()
 }
 
 // 注册专用中间件

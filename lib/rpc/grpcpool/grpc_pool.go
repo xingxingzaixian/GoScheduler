@@ -1,7 +1,7 @@
 package grpcpool
 
 import (
-	rpc "GoScheduler/internal/modules/rpc/proto"
+	rpc "GoScheduler/lib/rpc/proto"
 	"context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

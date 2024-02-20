@@ -9,12 +9,6 @@ import (
 
 type Task struct{}
 
-type TaskResult struct {
-	Result     string
-	Err        error
-	RetryTimes int8
-}
-
 // 批量添加任务
 func (task Task) BatchAdd(tasks []models.Task) {
 	for _, item := range tasks {

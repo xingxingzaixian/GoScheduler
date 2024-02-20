@@ -1,16 +1,13 @@
 package server
 
 import (
-	pb "GoScheduler/internal/modules/rpc/proto"
 	"GoScheduler/internal/modules/utils"
+	pb "GoScheduler/lib/rpc/proto"
 	"context"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -49,7 +46,7 @@ func (s Server) Run(ctx context.Context, req *pb.TaskRequest) (*pb.TaskResponse,
 	return resp, nil
 }
 
-func Start(addr string) {
+func Start(addr string) *grpc.Server {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		zap.S().Fatal(err)
@@ -59,29 +56,15 @@ func Start(addr string) {
 		grpc.KeepaliveParams(keepAliveParams),
 		grpc.KeepaliveEnforcementPolicy(keepAlivePolicy),
 	}
-	server := grpc.NewServer(opts...)
-	pb.RegisterTaskServer(server, Server{})
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterTaskServer(grpcServer, Server{})
 	zap.S().Infof("server listen on %s", addr)
 
 	go func() {
-		err = server.Serve(l)
+		err = grpcServer.Serve(l)
 		if err != nil {
 			zap.S().Fatal(err)
 		}
 	}()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
-	for {
-		s := <-c
-		zap.S().Infoln("收到信号 -- ", s)
-		switch s {
-		case syscall.SIGHUP:
-			zap.S().Infoln("收到终端断开信号, 忽略")
-		case syscall.SIGINT, syscall.SIGTERM:
-			zap.S().Info("应用准备退出")
-			server.GracefulStop()
-			return
-		}
-	}
+	return grpcServer
 }
